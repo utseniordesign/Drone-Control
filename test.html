@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>Test</title>
+   </head>
+<body>
+    <div> Somthing here </div>
+    <textarea id="inputText"></textarea>
+    <button type="button" onclick="myfunction()">Send</button>
+    <img src="opencv_frame_0.jpg" />
+    <script type="text/javascript">
+	function myfunction()
+	{
+		/*
+		$.ajax({
+  			url: "test.html",
+  			cache: false,
+  			success: function(html){
+    			$("#results").append(html);
+  }
+});
+*/
+		var val = $('#inputText').val();
+		alert(val);
+		
+		$.ajax({
+			type: "POST",
+			url: "/test",
+			data: {val: val},
+			dataType: "json",
+			cache: false,
+    			//timeout: 5000,
+    /*
+			complete: function() {
+      //called when complete
+      console.log('process complete');
+    },
+
+    success: function(data) {
+      console.log(data);
+      console.log('process sucess');
+   },
+
+    error: function() {
+      console.log('process error');
+    },*/
+		});
+		/*
+		request.done(function() {
+
+		});
+		
+		request.fail(function(jqXHR, textStatus) {
+  			alert( "Request failed: " + textStatus );
+		});
+		*/
+		
+	}
+    </script>
+   <script
+   src="https://code.jquery.com/jquery-3.3.1.min.js"
+   integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+   crossorigin="anonymous"></script> 
+</body></html>
