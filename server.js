@@ -30,6 +30,69 @@ app.post('/test', function(req, res) {
   console.log("sent: " + req.body.val);
   //res.status(200).send('ok');
 });
+class Route{
+
+	constructor(startX, startY, startZ, endX, endY, endZ){
+    		this.startLocation = {startX, startY, startZ};
+		this.endLocation = {endX, endY, endZ};
+		this.currentLocation = {startX, startY, startZ};
+		this.vertices = [];
+ 	}
+
+	iterateRoute(node) {
+		//var xDifference = Math.abs(node.x - 
+		//routes.routes.forEach(function(route) {
+			for(var i = 1; i < vertices.length; i++)
+			{
+				var begin = vertices[i - 1];
+				var end = vertices[i];
+			}
+		//});
+	}
+
+ 	print(){
+    		console.log('Name is :'+ this.name);
+ 	}
+};
+/*
+var iterateRoute = function(node){
+	var xDifference = Math.abs(node.x - 
+	routes.routes.forEach(function(route) {
+		for(var i = 1; i < route.vertices.length; i++)
+		{
+			var begin = route.vertices[i - 1];
+			var end = route.vertices[i];
+		}
+	});
+};
+*/
+var routes = {
+	count: 0,
+	routes: []
+};
+app.post('/createRoute', function(req, res) {
+	var positions = req.body.positions;
+	var startX = positions.startX;
+	var startY = positions.startY;
+	var startZ = positions.startZ;
+	var endX = positions.endX;
+	var endY = positions.endY;
+	var endZ = positions.endZ;
+	var route = new Route(startX, startY, startZ, endX, endY, endZ);
+	route.vertices.push({x: startX, y: 0, z: 0});
+	route.vertices.push({x: startX, y: startY, z: 0});
+	route.vertices.push({x: startX, y: startY, z: startZ});
+	route.vertices.forEach(function(vertex) {
+		console.log("x: " + vertex.x + " y: " + vertex.y + " z: " + vertex.z);
+	});
+	res.json(route);	
+	/*
+	routes.route.forEach(function(route) {
+		route	
+	});
+	*/
+	
+});
 app.post('/droneRoute', function(req, res) {
 	var routeId;
 	con.query("SELECT (max(routeid) + 1) as id from example", function(error, result){

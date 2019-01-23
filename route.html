@@ -1,0 +1,258 @@
+<html>
+	<head>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 50%; height: 50%; }
+		</style>
+	</head>
+	<body>
+		<script src="three.min.js"></script>
+		<script src="jquery.min.js"></script>
+		<div>
+			<button input="button" id="XYButton" onclick="displayXY()">XY</button>
+			<button input="button" id="XZButton" onclick="displayXZ()">XZ</button>
+			<button input="button" id="YZButton" onclick="displayYZ()">YZ</button>
+			<button input="button" id="3DButton" onclick="displayThreeDim()">YZ</button>
+		</div>
+		<div>
+			<b>X Angle: </b><textarea id="XAngleText"></textarea>
+			<b>Y Angle: </b><textarea id="YAngleText"></textarea>
+			<b>Z Angle: </b><textarea id="ZAngleText"></textarea>
+		</div>
+		<div>
+			<button input="button" id="sendRouteButton" onclick="sendRoute()">Send</button>
+		</div>
+		<div>
+			<div>
+				<textarea id="startX"></textarea>
+				<textarea id="startY"></textarea>
+				<textarea id="startZ"></textarea>
+			</div>
+			<div>
+				<textarea id="endX"></textarea>
+				<textarea id="endY"></textarea>
+				<textarea id="endZ"></textarea>
+			</div>
+			<button input="button" id="createRouteButton" onclick="createRoute()">Create</button>
+		</div>
+		<script>
+			var createRoute = function() {
+				var startX = $("#startX").val(); 
+				var startY = $("#startY").val(); 
+				var startZ = $("#startZ").val(); 
+				var endX = $("#endX").val(); 
+				var endY = $("#endY").val(); 
+				var endZ = $("#endZ").val();
+				var positions = {
+                                        "startX" : startX,
+					"startY" : startY,
+					"startZ" : startZ,
+					"endX" : endX,
+					"endY" : endY,
+					"endZ" : endZ
+                                };
+				$.ajax({
+                        		type: "POST",
+                        		url: "/createRoute",
+                        		data: {positions: positions},
+                        		dataType: "json",
+                        		cache: false,
+					success : function(route) {
+        					alert('Data: '+route.vertices[0].x);
+						
+						var material = new THREE.LineBasicMaterial( { color: 0x0000ff, linewidth: 5 } );
+						var geometry = new THREE.Geometry();
+						route.vertices.forEach(function(vertex) {
+							geometry.vertices.push(new THREE.Vector3( vertex.x, vertex.y, vertex.z) );
+						});
+						var lines = new THREE.Line(geometry, material);
+						scene.add(lines);
+						renderer.render(scene, camera);
+    					},
+    					error : function(request,error)
+    					{
+        					alert("Request: "+JSON.stringify(request));
+    					}
+                		});
+
+			}
+			var scene = new THREE.Scene();
+			//var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( 500, 500 );
+			renderer.setClearColor( 0x99ccff, 0);
+			document.body.appendChild( renderer.domElement );	
+			var camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 500 );
+			camera.position.set( 0, 0, 100 );
+			camera.lookAt( 0, 0, 0 );
+			var scene = new THREE.Scene();
+			/*
+			var geometry = new THREE.BoxGeometry( 1, 1, 2 );
+			var material = new THREE.MeshBasicMaterial( { color: 0x004000 } );
+			var cube = new THREE.Mesh( geometry, material );
+			scene.add( cube );
+			*/
+			var material = new THREE.LineBasicMaterial( { color: 0x0000ff, linewidth: 5 } );
+			var geometry = new THREE.Geometry();
+			geometry.vertices.push(new THREE.Vector3( 0, 0, 10) );
+			geometry.vertices.push(new THREE.Vector3( 0, 0, 0) );
+			geometry.vertices.push(new THREE.Vector3( -10, 0, 0) );
+			geometry.vertices.push(new THREE.Vector3( 0, 10, 0) );
+			geometry.vertices.push(new THREE.Vector3( 10, 0, 0) );
+			var lines = new THREE.Line(geometry, material);
+			scene.add(lines);
+			renderer.render(scene, camera);
+			var screenW = window.innerWidth;
+			var screenH = window.innerHeight; /*SCREEN*/
+			var spdx = 0, spdy = 0; startX = -1, startY = -1, endX = 0, endY = 0, mouseDown = false; /*MOUSE*/
+			document.addEventListener('mousemove', function(event) {
+    				endX = event.clientX;
+    				endY = event.clientY;
+			}, false);
+			document.body.addEventListener("mousedown", function(event) {
+    				mouseDown = true;
+				startX = event.clientX;
+				startY = event.clientY;
+			}, false);
+			document.body.addEventListener("mouseup", function(event) {
+    				mouseDown = false;
+			}, false);
+			var sendRoute = function () {
+				var vertices = {
+					vectors: []
+				};
+				geometry.vertices.map(function(item) {
+					vertices.vectors.push({
+						"x" : item.x,
+						"y" : item.y,
+						"z" : item.z
+					});
+				});	
+				$.ajax({
+		                        type: "POST",
+                		        url: "/droneRoute",
+                        		data: {vertices: vertices},
+                        		dataType: "json",
+                        		cache: false,
+
+				});
+
+			}
+			var updateRotation = function () {
+				console.log(camera.position.x);
+				$("#XAngleText").text(camera.position.x);
+				$("#YAngleText").text(camera.position.y);
+				$("#ZAngleText").text(camera.position.z);
+			}
+			var displayXY = function () {
+				camera.position.x = 0;
+				camera.position.y = 0;
+				camera.position.z = 100;
+				//camera.up = new THREE.Vector3(0,0,1);
+				camera.lookAt(0, 5, 0);
+				updateRotation();
+			}
+			var displayXZ = function () {
+				camera.position.x = 0;
+				camera.position.y = 100;
+				camera.position.z = 0;
+				//camera.up = new THREE.Vector3(0,0,1);
+
+				camera.lookAt(new THREE.Vector3(0, 0, 0));
+				updateRotation();
+				//alert("X: " + camera.rotation.x + " Y:" + camera.rotation.y + " Z: " + camera.rotation.z);
+			}	
+			var displayYZ = function () {
+				camera.position.x = 100;
+				camera.position.y = 0;
+				camera.position.z = 0;
+				//camera.up = new THREE.Vector3(1,0,0);
+				camera.lookAt(new THREE.Vector3(0, 0, 0));
+				updateRotation();
+				//alert("X: " + camera.rotation.x + " Y:" + camera.rotation.y + " Z: " + camera.rotation.z);
+			}
+			var displayThreeDim = function () {
+				camera.position.x = -100;
+				camera.position.y = 20;
+				camera.position.z = -100;
+				//camera.up = new THREE.Vector3(0,0,1);
+				camera.lookAt(new THREE.Vector3(0, 0, 0));
+				updateRotation();
+				//alert("X: " + camera.rotation.x + " Y:" + camera.rotation.y + " Z: " + camera.rotation.z);
+			}
+			var animate = function () {
+				requestAnimationFrame( animate );
+				if(mouseDown)
+				{
+					/*
+					var xChange = 0;
+					var zChange = 0;
+					if(endX - startX > 0)
+					{
+						xChange += Math.sqrt(Math.abs(endY - startY) / 2);
+						zChange += Math.sqrt(Math.abs(endY - startY) / 2);
+					}
+					else
+					{
+						xChange -= Math.sqrt(Math.abs(endY - startY) / 2);
+						zChange -= Math.sqrt(Math.abs(endY - startY) / 2);
+					}
+					if(endY - startY > 0)
+					{
+						xChange -= Math.sqrt(Math.abs(endX - startX) / 2);
+						zChange += Math.sqrt(Math.abs(endX - startX) / 2);
+					}
+					else
+					{
+						xChange += Math.sqrt(Math.abs(endX - startX) / 2);
+						zChange -= Math.sqrt(Math.abs(endX - startX) / 2);
+					}
+					console.log(xChange + " " + zChange);
+					camera.position.x += xChange;	
+					camera.position.z += zChange;
+					startX = endX;
+					startY = endY;
+					*/
+				}
+				//cube.rotation.x += 0.01;
+				//cube.rotation.y += 0.01;
+				//camera.position.z += 0.01;
+				//camera.position.y += 0.01;
+				renderer.render( scene, camera );
+			};
+			document.addEventListener('keydown', function(event) 
+        		{
+                		if(event.keyCode == 37)//LEFT 
+                		{
+					camera.position.x += 5;
+					camera.position.z -= 5;
+                		}
+                		else if(event.keyCode == 38)//UP
+                		{
+					camera.position.x += 5;
+					camera.position.z += 5;
+                		}
+                		else if(event.keyCode == 39)//RIGHT
+                		{
+					camera.position.x -= 5;
+					camera.position.z += 5;
+                		}
+                		else if(event.keyCode = 40)//DOWN
+                		{
+					camera.position.x -= 5;
+					camera.position.z -= 5;
+                		}
+				else if(event.keyCode = 32)//SPACE
+				{
+					camera.position.y += 5;
+				}
+				else if(event.keyCode = 17)//CTRL
+				{
+					camera.position.y -= 5;
+				}
+        		});
+			animate();
+		</script>
+	</body>
+</html>
