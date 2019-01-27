@@ -22,13 +22,13 @@
 	Your browser does not support the HTML5 canvas tag.</canvas>
 
     <script type="text/javascript">
-    var c = document.getElementById("myCanvas");
-    //var ctx = c.getContext("2d");
-    var gl = c.getContext('webgl') || c.getContext("experimental-webgl");
-    ctx.beginPath();
-    ctx.moveTo(0, 0, 0);
-    ctx.lineTo(300, 150, 0);
-    ctx.stroke();
+    	var c = document.getElementById("myCanvas");
+    	//var ctx = c.getContext("2d");
+    	var gl = c.getContext('webgl') || c.getContext("experimental-webgl");
+    	ctx.beginPath();
+    	ctx.moveTo(0, 0, 0);
+    	ctx.lineTo(300, 150, 0);
+    	ctx.stroke();
 
 	document.addEventListener('keydown', function(event) 
 	{
@@ -70,30 +70,7 @@
 			dataType: "json",
 			cache: false,
     			//timeout: 5000,
-    /*
-			complete: function() {
-      //called when complete
-      console.log('process complete');
-    },
-
-    success: function(data) {
-      console.log(data);
-      console.log('process sucess');
-   },
-
-    error: function() {
-      console.log('process error');
-    },*/
 		});
-		/*
-		request.done(function() {
-
-		});
-		
-		request.fail(function(jqXHR, textStatus) {
-  			alert( "Request failed: " + textStatus );
-		});
-		*/
 		
 	}
     </script>
