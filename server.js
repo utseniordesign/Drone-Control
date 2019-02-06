@@ -60,34 +60,49 @@ class Route{
 	{
 		var createNode = null;
 		var differenceOriginal = -1;
-		var 
-		Route.allVertices.vertices.forEach(function(vertex) {
-
-			var xDifference = Math.abs(startX - parseInt(vertex.x));
-			var yDifference = Math.abs(startY - parseInt(vertex.y));
-			var zDifference = Math.abs(startZ - parseInt(vertex.z));
-			var difference = xDifference + yDifference + zDifference;
-			if(createNode == null)
+		var zClosest = null;
+		Route.levels.forEach(function(level) {
+			var zDifference = Math.abs(parseInt(level.level) - parseInt(z));
+			if(zClosest == null)
 			{
-				//console.log(vertex.x + " " + vertex.y + " " + vertex.z);
-				createNode = vertex;
-				differenceOriginal = difference;
+				zClosest = level;
 				return;
 			}
-			if(difference < differenceOriginal)
+			if(parseInt(zClosest.level) > parseInt(level.level))
 			{
-				//console.log(vertex.x + " " + vertex.y + " " + vertex.z);
-				createNode = vertex;
-				differenceOriginal = difference;
+				zClosest = level;
+			}
+			//console.log(parseInt(zDifference));
+		});
+		Route.allVertices.vertices.forEach(function(vertex) {
+			if(zClosest != null && (parseInt(vertex.z) == parseInt(zClosest.level)))
+			{
+				var xDifference = Math.abs(x - parseInt(vertex.x));
+				var yDifference = Math.abs(y - parseInt(vertex.y));
+				var difference = xDifference + yDifference;
+				if(createNode == null)
+				{
+					//console.log(vertex.x + " " + vertex.y + " " + vertex.z);
+					createNode = vertex;
+					differenceOriginal = difference;
+					return;
+				}
+				if(difference < differenceOriginal)
+				{
+					//console.log(vertex.x + " " + vertex.y + " " + vertex.z);
+					createNode = vertex;
+					differenceOriginal = difference;
+				}
 			}
 		});
+		//console.log(createNode);
 		return createNode;
 	}
 	static initialize() { 
 		/*creating route vertices*/
 		for(var k = 0; k < parseInt(Route.airSpace.z); k += Route.closeness * Route.zScale)
 		{
-			Route.levels.push({level: k / (Route.closeness * Route.zScale), traffic: 0});
+			Route.levels.push({level: k, traffic: 0});
 			for(var j = 0; j < parseInt(Route.airSpace.y); j += Route.closeness)
 			{
 				for(var i = 0; i < parseInt(Route.airSpace.x); i += Route.closeness)
@@ -134,32 +149,47 @@ class Route{
 						}
 					}
 
-					/*
-					for(var k = 0; k < checkVertex.segments.length; k++)
-					{
-						if(checkVertex.segments[k].vertexA.x == )
-					}*/
 				}
 			}
 			//console.log("finished initializing");
 		}
-		/*
-		Route.allVertices.vertices.forEach(function(vertex) {
-		
-
-		});
-		*/
 	}
 	/*Createsa route*/
-	createRoute(routes) {
-		
+	createRoute(routes) {	
 		this.createDirection = -1;//used to create routes
-		var createNode = Route.findVertex(startX, startY, startZ);
 		var differenceOriginal = -1;
 		var startX = parseInt(this.startLocation.x);
 		var startY = parseInt(this.startLocation.y);
 		var startZ = parseInt(this.startLocation.z);
+		var createNode = Route.findVertex(startX, startY, startZ);
 		this.vertices.push(createNode);
+		/*Evaluate flight height*/
+			var minLevel;
+			
+			var endX = parseInt(this.endLocation.x);
+			var endY = parseInt(this.endLocation.y);
+			var endZ = parseInt(this.endLocation.z);
+			var endNode = Route.findVertex(endX, endY, endZ);
+			var numLevels = Math.abs(parseInt(createNode.z) - parseInt(endNode.z));
+			if(parseInt(createNode.z) > parseInt(endNode.z))
+			{
+				minLevel = parseInt(endNode.z);
+			}
+			else
+			{
+				minLevel = parseInt(createNode.z);
+			}
+			var leastTraffic = minLevel;
+			for(var i = minLevel + 1; i < minLevel + numLevels; i++)
+			{
+				if(parseInt(Route.levels[i].traffic) < parseInt(Route.levels[leastTraffic].traffic))
+				{
+					leastTraffic = i;
+				}
+			}
+			var zNew = leastTraffic * Route.closeness * Route.zScale;
+
+
 		this.iterateRoute(createNode, routes);
 		routes.routes.push(this);
 	}
@@ -244,32 +274,6 @@ class Route{
 		{
 			zDifference = -1;
 		}
-		if(zDifference != 0)//Evaluate if the z-level needs to be changed
-		{
-			var minLevel;
-			var startZ = parseInt(this.startLocation.z);
-			var endZ = parseInt(this.endLocation.z);
-			var numLevels = Math.abs(parseInt(this.endLocation.z) - parseInt(this.startLocation.z));
-			if(startZ > endZ)
-			{
-				minLevel = endZ;
-			}
-			else
-			{
-				minLevel = startZ;
-			}
-			var leastTraffic = minLevel;
-			for(var i = minLevel + 1; i < minLevel + numLevels; i++)
-			{
-				if(parseInt(Route.levels[i].traffic) < parseInt(Route.levels[leastTraffic].traffic))
-				{
-					leastTraffic = i;
-				}
-			}
-			var zNew = leastTraffic * Route.closeness * Route.zScale;
-
-
-		}
 		for(var i = 0; i < node.segments.length; i++) {
 			var nodeNext;
 			var segment = node.segments[i];
@@ -298,58 +302,6 @@ class Route{
 				this.iterateRoute(nodeNext, routes);
 				return;
 			}
-			/*
-			if(this.createDirection == X)
-			{
-				if(safeToAddX && safeToAddY && safeToAddZ)
-				{
-					this.vertices.push(nodeNext);
-					this.iterateRoute(nodeNext, routes);
-					return;
-				}
-				
-			}
-			if(this.createDirection == Y)
-			{
-				if(safeToAddY)
-				{
-					this.vertices.push(nodeNext, routes);
-					this.iterateRoute(nodeNext, routes);
-					return;
-				}
-			}
-			if(this.createDirection == Z)
-			{
-				if(safeToAddZ)
-				{
-					this.vertices.push(nodeNext, routes);
-					this.iterateRoute(nodeNext, routes);
-					return;
-				}
-			}
-			//console.log("Y change: " + safeDirections.x + " " + safeDirections.y + " " + safeDirections.z);
-
-			if(safeToAddX)
-			{
-				this.createDirection = X;
-				this.vertices.push(nodeNext);
-				this.iterateRoute(nodeNext, routes);
-				return;
-			}
-			if(safeToAddY)
-			{
-				this.createDirection = Y;
-				this.vertices.push(nodeNext);
-				this.iterateRoute(nodeNext, routes);
-				return;
-			}
-			if(safeToAddZ)
-			{
-				this.createDirection = Z;
-				this.vertices.push(nodeNext);
-				this.iterateRoute(nodeNext, routes);
-				return;
-			}*/	
 		}
 	}
 	/*JUNK*/
