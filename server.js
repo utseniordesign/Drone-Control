@@ -37,7 +37,9 @@ class Vertex{
 		this.x = x;
 		this.y = y;
 		this.z = z;
-		this.segments = [];
+		this.neighbors = [];
+		this.dist = {x: 10000, y: 10000, z: 10000};
+		this.prev = null;
 	}
 }
 class Segment{
@@ -56,11 +58,23 @@ class Route{
 		this.currentLocation = {x: startX, y: startY, z: startZ};
 		this.vertices = [];
  	}
+	static initializeVertices()
+	{
+		Route.createVertices = [];
+		Route.allVertices.vertices.forEach(function (vertex) {
+			vertex.dist = {x: 100000, y: 10000, z: 10000};
+			vertex.prev = null;
+			vertex.visited = false;
+			Route.createVertices.push(vertex);
+		});
+
+	}
 	static findVertex(x, y, z)
 	{
 		var createNode = null;
 		var differenceOriginal = -1;
 		var zClosest = null;
+		/*
 		Route.levels.forEach(function(level) {
 			var zDifference = Math.abs(parseInt(level.level) - parseInt(z));
 			if(zClosest == null)
@@ -74,12 +88,15 @@ class Route{
 			}
 			//console.log(parseInt(zDifference));
 		});
+		*/
 		Route.allVertices.vertices.forEach(function(vertex) {
-			if(zClosest != null && (parseInt(vertex.z) == parseInt(zClosest.level)))
-			{
+			//if(zClosest != null && (parseInt(vertex.z) == parseInt(zClosest.level)))
+			//{
 				var xDifference = Math.abs(x - parseInt(vertex.x));
 				var yDifference = Math.abs(y - parseInt(vertex.y));
-				var difference = xDifference + yDifference;
+				var zDifference = Math.abs(z - parseInt(vertex.z));
+				
+				var difference = xDifference + yDifference + zDifference;
 				if(createNode == null)
 				{
 					//console.log(vertex.x + " " + vertex.y + " " + vertex.z);
@@ -93,7 +110,7 @@ class Route{
 					createNode = vertex;
 					differenceOriginal = difference;
 				}
-			}
+			//}
 		});
 		//console.log(createNode);
 		return createNode;
@@ -131,66 +148,120 @@ class Route{
 					var closeToZ = (curZ + Route.closeness >= checkZ) && (curZ - Route.closeness <= checkZ);
 					if(closeToX && closeToY && closeToZ)
 					{
-						var contains = null;
-						checkVertex.segments.forEach(function (segment){
-						//console.log("close enough");
-							if(segment.vertexA == curVertex)
-								contains = segment;
-							if(segment.vertexB == curVertex)
-								contains = segment;
-						});
-						if(contains == null)
-						{
-							curVertex.segments.push(new Segment(curVertex, checkVertex));
-						}
-						else
-						{
-							curVertex.segments.push(contains);
-						}
+						curVertex.neighbors.push(checkVertex);
 					}
 
 				}
 			}
-			//console.log("finished initializing");
+			console.log(Route.allVertices.vertices[0]);// + " "  + Route.allVertices.vertices[0].neighbors);
 		}
 	}
 	/*Createsa route*/
 	createRoute(routes) {	
+		Route.initializeVertices();	
 		this.createDirection = -1;//used to create routes
 		var differenceOriginal = -1;
 		var startX = parseInt(this.startLocation.x);
 		var startY = parseInt(this.startLocation.y);
 		var startZ = parseInt(this.startLocation.z);
-		var createNode = Route.findVertex(startX, startY, startZ);
-		this.vertices.push(createNode);
+		var startNode = Route.findVertex(startX, startY, startZ);
+		this.vertices.push(startNode);
 		/*Evaluate flight height*/
-			var minLevel;
+		var minLevel;	
+		var endX = parseInt(this.endLocation.x);
+		var endY = parseInt(this.endLocation.y);
+		var endZ = parseInt(this.endLocation.z);
+		var endNode = Route.findVertex(endX, endY, endZ);
+		endNode.visited = true;
+		endNode.dist = {x: 0, y: 0, z: 0};
+		console.log(endNode);
+		var numLevels = Math.abs(parseInt(startNode.z) - parseInt(endNode.z));
+		while(Route.createVertices.length > 0)
+		{
+			//find closest
+			var closest = {
+				vertex: Route.createVertices[0],
+				index: 0
+			};
 			
-			var endX = parseInt(this.endLocation.x);
-			var endY = parseInt(this.endLocation.y);
-			var endZ = parseInt(this.endLocation.z);
-			var endNode = Route.findVertex(endX, endY, endZ);
-			var numLevels = Math.abs(parseInt(createNode.z) - parseInt(endNode.z));
-			if(parseInt(createNode.z) > parseInt(endNode.z))
+			for(var i = 0; i < Route.createVertices.length; i++)
 			{
-				minLevel = parseInt(endNode.z);
-			}
-			else
-			{
-				minLevel = parseInt(createNode.z);
-			}
-			var leastTraffic = minLevel;
-			for(var i = minLevel + 1; i < minLevel + numLevels; i++)
-			{
-				if(parseInt(Route.levels[i].traffic) < parseInt(Route.levels[leastTraffic].traffic))
+				var closestDistance = 
+					(parseInt(closest.vertex.dist.x) * parseInt(closest.vertex.dist.x)) + 
+					(parseInt(closest.vertex.dist.y) * parseInt(closest.vertex.dist.y)) + 
+					(parseInt(closest.vertex.dist.z) * parseInt(closest.vertex.dist.z));
+				var curDistance = 
+					(parseInt(Route.createVertices[i].dist.x) * parseInt(Route.createVertices[i].dist.x)) + 
+					(parseInt(Route.createVertices[i].dist.y) * parseInt(Route.createVertices[i].dist.y)) + 
+					(parseInt(Route.createVertices[i].dist.z) * parseInt(Route.createVertices[i].dist.z)); 
+				//console.log(Route.createVertices[i]);
+				if(curDistance < closestDistance)
 				{
-					leastTraffic = i;
+					closest.vertex = Route.createVertices[i];
+					closest.index = i;
 				}
 			}
-			var zNew = leastTraffic * Route.closeness * Route.zScale;
-
-
+			//console.log(closest.vertex.neighbors);
+			
+			Route.createVertices.splice(parseInt(closest.index), 1);//remove element from array
+			closest.vertex.neighbors.forEach(function(neighbor){
+				var segment = {
+					x: Math.abs(parseInt(neighbor.x) - parseInt(closest.vertex.x)), 
+					y: Math.abs(parseInt(neighbor.y) - parseInt(closest.vertex.y)), 
+					z: Math.abs(parseInt(neighbor.z) - parseInt(closest.vertex.z))
+				};
+				//console.log(segment);
+				//find alternate distance from endNode
+				var altDist = 
+					((parseInt(closest.vertex.dist.x) + parseInt(segment.x)) * (parseInt(closest.vertex.dist.x) + parseInt(segment.x))) +
+					((parseInt(closest.vertex.dist.y) + parseInt(segment.y)) * (parseInt(closest.vertex.dist.y) + parseInt(segment.y))) +
+					((parseInt(closest.vertex.dist.z) + parseInt(segment.z)) * (parseInt(closest.vertex.dist.z) + parseInt(segment.z)));
+				//find current distance from endNode
+				var neighborDist =
+					(parseInt(neighbor.dist.x) * parseInt(neighbor.dist.x)) +
+					(parseInt(neighbor.dist.y) * parseInt(neighbor.dist.y)) +
+					(parseInt(neighbor.dist.z) * parseInt(neighbor.dist.z));
+				//console.log(altDist + " " + neighborDist);
+				if(altDist < neighborDist)
+				{
+					neighbor.prev = closest.vertex
+					neighbor.dist.x = parseInt(closest.vertex.dist.x) + parseInt(segment.x);
+					neighbor.dist.y = parseInt(closest.vertex.dist.y) + parseInt(segment.y);
+					neighbor.dist.z = parseInt(closest.vertex.dist.z) + parseInt(segment.z);
+				}
+			});
+			//console.log(closest.vertex.neighbors);
+			//break;
+		}
+		var printNode = startNode;
+		while(printNode != null)
+		{
+			console.log(printNode);
+			this.vertices.push(printNode);
+			//routes.routes.push(printNode);
+			printNode = printNode.prev;
+		}
+		/*
+		if(parseInt(createNode.z) > parseInt(endNode.z))
+		{
+			minLevel = parseInt(endNode.z);
+		}
+		else
+		{
+			minLevel = parseInt(createNode.z);
+		}
+		var leastTraffic = minLevel;
+		for(var i = minLevel + 1; i < minLevel + numLevels; i++)
+		{
+			if(parseInt(Route.levels[i].traffic) < parseInt(Route.levels[leastTraffic].traffic))
+			{
+				leastTraffic = i;
+			}
+		}
+		
+		var zNew = leastTraffic * Route.closeness * Route.zScale;
 		this.iterateRoute(createNode, routes);
+		*/
 		routes.routes.push(this);
 	}
 	evaluateSafeness(routes, modified) {
@@ -311,10 +382,11 @@ class Route{
  	}*/
 };
 Route.allVertices = { vertices: [] };
+Route.createVertices = [];
 Route.levels = [];
-Route.airSpace = {x : 100, y: 100, z: 100};
+Route.airSpace = {x : 20, y: 20, z: 10};
 Route.closeness = 5;
-Route.zScale = 2;
+Route.zScale = 1;
 Route.initialize();
 var routes = {
 	count: 0,
