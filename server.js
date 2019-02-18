@@ -74,43 +74,25 @@ class Route{
 		var createNode = null;
 		var differenceOriginal = -1;
 		var zClosest = null;
-		/*
-		Route.levels.forEach(function(level) {
-			var zDifference = Math.abs(parseInt(level.level) - parseInt(z));
-			if(zClosest == null)
+		Route.allVertices.vertices.forEach(function(vertex) {
+			var xDifference = Math.abs(x - parseInt(vertex.x));
+			var yDifference = Math.abs(y - parseInt(vertex.y));
+			var zDifference = Math.abs(z - parseInt(vertex.z));
+				
+			var difference = xDifference + yDifference + zDifference;
+			if(createNode == null)
 			{
-				zClosest = level;
+				//console.log(vertex.x + " " + vertex.y + " " + vertex.z);
+				createNode = vertex;
+				differenceOriginal = difference;
 				return;
 			}
-			if(parseInt(zClosest.level) > parseInt(level.level))
+			if(difference < differenceOriginal)
 			{
-				zClosest = level;
+				//console.log(vertex.x + " " + vertex.y + " " + vertex.z);
+				createNode = vertex;
+				differenceOriginal = difference;
 			}
-			//console.log(parseInt(zDifference));
-		});
-		*/
-		Route.allVertices.vertices.forEach(function(vertex) {
-			//if(zClosest != null && (parseInt(vertex.z) == parseInt(zClosest.level)))
-			//{
-				var xDifference = Math.abs(x - parseInt(vertex.x));
-				var yDifference = Math.abs(y - parseInt(vertex.y));
-				var zDifference = Math.abs(z - parseInt(vertex.z));
-				
-				var difference = xDifference + yDifference + zDifference;
-				if(createNode == null)
-				{
-					//console.log(vertex.x + " " + vertex.y + " " + vertex.z);
-					createNode = vertex;
-					differenceOriginal = difference;
-					return;
-				}
-				if(difference < differenceOriginal)
-				{
-					//console.log(vertex.x + " " + vertex.y + " " + vertex.z);
-					createNode = vertex;
-					differenceOriginal = difference;
-				}
-			//}
 		});
 		//console.log(createNode);
 		return createNode;
@@ -153,7 +135,7 @@ class Route{
 
 				}
 			}
-			console.log(Route.allVertices.vertices[0]);// + " "  + Route.allVertices.vertices[0].neighbors);
+			//console.log(Route.allVertices.vertices[0]);// + " "  + Route.allVertices.vertices[0].neighbors);
 		}
 	}
 	/*Createsa route*/
@@ -174,7 +156,7 @@ class Route{
 		var endNode = Route.findVertex(endX, endY, endZ);
 		endNode.visited = true;
 		endNode.dist = {x: 0, y: 0, z: 0};
-		console.log(endNode);
+		//console.log(endNode);
 		var numLevels = Math.abs(parseInt(startNode.z) - parseInt(endNode.z));
 		while(Route.createVertices.length > 0)
 		{
@@ -204,6 +186,8 @@ class Route{
 			//console.log(closest.vertex.neighbors);
 			
 			Route.createVertices.splice(parseInt(closest.index), 1);//remove element from array
+			if(closest.vertex == startNode)
+				break;
 			closest.vertex.neighbors.forEach(function(neighbor){
 				var segment = {
 					x: Math.abs(parseInt(neighbor.x) - parseInt(closest.vertex.x)), 
@@ -236,31 +220,12 @@ class Route{
 		var printNode = startNode;
 		while(printNode != null)
 		{
-			console.log(printNode);
+			//console.log(printNode);
 			this.vertices.push(printNode);
 			//routes.routes.push(printNode);
 			printNode = printNode.prev;
 		}
 		/*
-		if(parseInt(createNode.z) > parseInt(endNode.z))
-		{
-			minLevel = parseInt(endNode.z);
-		}
-		else
-		{
-			minLevel = parseInt(createNode.z);
-		}
-		var leastTraffic = minLevel;
-		for(var i = minLevel + 1; i < minLevel + numLevels; i++)
-		{
-			if(parseInt(Route.levels[i].traffic) < parseInt(Route.levels[leastTraffic].traffic))
-			{
-				leastTraffic = i;
-			}
-		}
-		
-		var zNew = leastTraffic * Route.closeness * Route.zScale;
-		this.iterateRoute(createNode, routes);
 		*/
 		routes.routes.push(this);
 	}
@@ -384,7 +349,7 @@ class Route{
 Route.allVertices = { vertices: [] };
 Route.createVertices = [];
 Route.levels = [];
-Route.airSpace = {x : 20, y: 20, z: 10};
+Route.airSpace = {x : 100, y: 100, z: 100};
 Route.closeness = 5;
 Route.zScale = 1;
 Route.initialize();
@@ -406,7 +371,7 @@ app.post('/createRoute', function(req, res) {
 	console.log("Vertices Below");
 	var resultRoute = { vertices: [] };
 	route.vertices.forEach(function(vertex) {
-		console.log("x: " + vertex.x + " y: " + vertex.y + " z: " + vertex.z);
+		//console.log("x: " + vertex.x + " y: " + vertex.y + " z: " + vertex.z);
 		resultRoute.vertices.push({x: vertex.x, y: vertex.y, z: vertex.z});
 	});
 	res.json(resultRoute);		
