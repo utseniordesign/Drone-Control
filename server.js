@@ -1,6 +1,8 @@
 var express = require('express'); 
 //var mysql = require('mysql');
 var fs = require('fs');
+var sys = require('util');
+var exec = require('child_process').exec;
 var app = express();
 var bodyParser = require('body-parser');
 app.use( bodyParser.json() );       // to support JSON-encoded bodies
@@ -186,8 +188,8 @@ class Route{
 			//console.log(closest.vertex.neighbors);
 			
 			Route.createVertices.splice(parseInt(closest.index), 1);//remove element from array
-			if(closest.vertex == startNode)
-				break;
+			//if(closest.vertex == startNode)
+			//	break;
 			closest.vertex.neighbors.forEach(function(neighbor){
 				var segment = {
 					x: Math.abs(parseInt(neighbor.x) - parseInt(closest.vertex.x)), 
@@ -365,11 +367,19 @@ app.post('/createRoute', function(req, res) {
 	var endX = positions.endX;
 	var endY = positions.endY;
 	var endZ = positions.endZ;
+	var pid = positions.pid;
 	var startNode = {x: startX, y: startY, z: startZ};
 	var route = new Route(startX, startY, startZ, endX, endY, endZ);
 	route.createRoute(routes);
-	console.log("Vertices Below");
+	//console.log("Vertices Below");
 	var resultRoute = { vertices: [] };
+	var cmd = 'echo "' + startX +  ' ' + startY + ' ' + startZ + ' ' + endX + ' ' + endY + ' ' + endZ + '\n" > /proc/' + pid + '/fd/0';
+	exec(cmd, function(err, stdout, stderr) {
+  		if (err) {
+    		// should have err.code here?  
+  		}
+  		console.log(stdout);
+	});
 	route.vertices.forEach(function(vertex) {
 		//console.log("x: " + vertex.x + " y: " + vertex.y + " z: " + vertex.z);
 		resultRoute.vertices.push({x: vertex.x, y: vertex.y, z: vertex.z});
