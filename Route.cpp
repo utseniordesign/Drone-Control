@@ -8,6 +8,7 @@
 #define CLOSENESS 5
 #define FAR 1000
 using namespace std;
+struct Route;
 struct Vertex{
 	//Coordinates
 	int x;
@@ -38,21 +39,25 @@ struct Vertex{
 	}
 };
 struct Drone {
-	int x;
-	int y;
-	int z;
+	double x;
+	double y;
+	double z;
+	Vertex* current;//This is the current vertex location
 	int id;
-	Vertex* route;
+	Route* route;
 	//updates the position of the drone
-	void setPosition(int x, int y, int z)
+	void setPosition(double x, double y, double z)
 	{
 		this->x = x;
 		this->y = y;
 		this->z = z;
 	}
-	void setRoute(Vertex* route)
+	void setRoute(Route* route)
 	{
 		this->route = route;
+	}
+	bool evaluatePositioningData(double x, double y, double z) 
+	{
 	}
 	Drone(int x, int y, int z, int id) 
 	{
@@ -124,6 +129,10 @@ struct Map {
 	bool* validVertices;//These vertices can be used in path creation, works like a hash vertex[i] => ((x + airspace_x * y + airspace_y * airspace_x * z)/closeness)
 	int totalVertices;//total number of vertices
 	Drones drones;
+	void addDrone(int x, int y, int z)
+	{
+		drones.addDrone(x, y, z);
+	}
 	//update drone position
 	void updateDrones(int* x, int* y, int* z, int* id, int count)
 	{
@@ -133,8 +142,12 @@ struct Map {
 			drone->setPosition(x[i], y[i], z[i]);
 		}
 	}
+	//evaluates if the positioning data from the image processing is a conflict
+	bool evaluatePositioningData(double x, double y, double z, int id) {
+		
+	}
 	//update drone path
-	void updatePath(Vertex* route, int id)
+	void setRoute(Route* route, int id)
 	{
 		Drone* drone = drones.getDrone(id);
 		drone->setRoute(route);
@@ -271,6 +284,7 @@ struct Map {
 	}
 	//initialize all nodes in the airspace 
 	Map() {
+		drones = Drones();
 		int size = (AIRSPACE_X / CLOSENESS + 1) * (AIRSPACE_Y / CLOSENESS + 1) * (AIRSPACE_Z / CLOSENESS + 1); 
 		totalVertices = 0;
 		allVertices = new Vertex*[size];
@@ -386,9 +400,9 @@ struct Map {
 		delete allVertices;
 	}
 };
-
+//
 int main() {
-	Map* routes = new Map();
+	Map routes = Map();
 	//routes->initialize();
 	Vertex v1 = Vertex(0, 0, 0);
 	Vertex v2 = Vertex(0, 0, 10);
@@ -401,17 +415,21 @@ int main() {
 	//cin >> coordinates;
 	//routes->createObstacle(5,5,5,10,10,10);
 	//routes->createObstacle(25,25,25,30,30,30);
-	Route* route1 = routes->createRoute(&v1, &v2);	
-	Route* route2 = routes->createRoute(&v2, &v3);	
-	Route* route3 = routes->createRoute(&v3, &v4);	
-	Route* route4 = routes->createRoute(&v4, &v5);	
-	Route* route5 = routes->createRoute(&v5, &v6);	
-	Route* route6 = routes->createRoute(&v6, &v7);	
+	Route* route1 = routes.createRoute(&v1, &v2);	
+	Route* route2 = routes.createRoute(&v2, &v3);	
+	Route* route3 = routes.createRoute(&v3, &v4);	
+	Route* route4 = routes.createRoute(&v4, &v5);	
+	Route* route5 = routes.createRoute(&v5, &v6);	
+	Route* route6 = routes.createRoute(&v6, &v7);	
 	route1->merge(route2);
 	route1->merge(route3);
 	route1->merge(route4);
 	route1->merge(route5);
 	route1->merge(route6);
+	int id = 0;
+	routes.addDrone(0, 0, 0);
+	routes.setRoute(route1, 0);
 	route1->p();
+	cin >> id;
 	return 0;
 }
