@@ -1,4 +1,5 @@
 //#include <array>i
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -144,7 +145,15 @@ struct Map {
 	}
 	//evaluates if the positioning data from the image processing is a conflict
 	bool evaluatePositioningData(double x, double y, double z, int id) {
-		
+		Drone* d = getDrone(id)
+		double dx = d->x;
+		double dy = d->y;
+		double dz = d->z;
+		double threshold = 1;
+		if (pow(x - dx, 2) > threshold || pow(y - dy, 2) > threshold || pow(z - dz, 2) > threshold){
+			return false;
+		}
+		return true;
 	}
 	//update drone path
 	void setRoute(Route* route, int id)
