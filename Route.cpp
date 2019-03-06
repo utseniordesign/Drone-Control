@@ -32,15 +32,115 @@ struct Vertex{
 		this->numNeighbors = 0;
 
 	}
+	void p () 
+	{
+		printf("x:%d y:%d z:%d\n", x, y, z);
+	}
 };
-
+struct Drone {
+	int x;
+	int y;
+	int z;
+	int id;
+	Vertex* route;
+	//updates the position of the drone
+	void setPosition(int x, int y, int z)
+	{
+		this->x = x;
+		this->y = y;
+		this->z = z;
+	}
+	void setRoute(Vertex* route)
+	{
+		this->route = route;
+	}
+	Drone(int x, int y, int z, int id) 
+	{
+		setPosition(x, y, z);
+		this->id = id;
+	}
+	Drone() 
+	{
+		setPosition(0, 0, 0);
+	}
+};
+struct Drones {
+	Drone* drones;
+	int count;	
+	Drones()
+	{
+		drones = new Drone[5];
+		count = 0;
+	}
+	void addDrone(int x, int y, int z)
+	{
+		drones[count] = Drone(x, y, z, count);
+		count++;
+	}
+	Drone* getDrone(int id)
+	{
+		if(id >= count)
+			return NULL;
+		return &drones[id];
+	}	
+};
 struct Route {
+	Vertex** vertices;
+	int length;
+	Route(int length)
+	{
+		this->length = length;
+		this->vertices = new Vertex*[length];
+	}
+	void addVertex(Vertex* v, int i)
+	{
+		vertices[i] = v;
+	}
+	void p()
+	{
+		for(int i = 0; i < length; i++)
+			vertices[i]->p();
+	}
+	void merge(Route* route)
+	{
+		int newLength = this->length + route->length - 1;
+		Vertex** newVertices = new Vertex*[newLength];
+		for(int i = 0; i < this->length; i++)
+		{
+			newVertices[i] = this->vertices[i];
+		}
+		for(int i = 1; i < route->length; i++)
+		{
+			newVertices[i + this->length - 1] = route->vertices[i];	
+		}
+		delete this->vertices;
+		this->vertices = newVertices;
+		this->length = newLength;
+	}
+};
+struct Map {
 	Vertex*** routes;//all routes	
 	Vertex** allVertices;//all valid vertices
 	bool* validVertices;//These vertices can be used in path creation, works like a hash vertex[i] => ((x + airspace_x * y + airspace_y * airspace_x * z)/closeness)
 	int totalVertices;//total number of vertices
-	//create a route from the start to end node
-	Vertex* createRoute(Vertex* start, Vertex* end)
+	Drones drones;
+	//update drone position
+	void updateDrones(int* x, int* y, int* z, int* id, int count)
+	{
+		for(int i = 0; i < count; i++)
+		{
+			Drone* drone = drones.getDrone(id[i]);
+			drone->setPosition(x[i], y[i], z[i]);
+		}
+	}
+	//update drone path
+	void updatePath(Vertex* route, int id)
+	{
+		Drone* drone = drones.getDrone(id);
+		drone->setRoute(route);
+	}
+	//creates a route from the start to end and returns an array
+	Route* createRoute(Vertex* start, Vertex* end)
 	{
 		Vertex** vertices = initializeVertices();
 		int length = totalVertices;
@@ -122,16 +222,27 @@ struct Route {
 				}
 			}
 			vertices[closestI] = vertices[--length];//remove the closest vertex
-		
 		}
+		//evaluate length of route
+		int routeLength = 0;
 		Vertex* printNode = startNode;
 		while(printNode != NULL)
 		{
-			cout << printNode->x << " " << printNode->y << " " << printNode->z << endl;
+			routeLength++;
 			printNode = printNode->prev;
 		}
+		//Vertex** route = new Vertex*[routeLength]
+		Route* route = new Route(routeLength);
+		Vertex* cur = startNode;
+		int i = 0;
+		while(cur != NULL)
+		{
+			route->addVertex(cur, i++);
+			cur = cur->prev;
+		}
+		//route->p();
 		delete vertices;
-		return NULL;
+		return route;
 	}
 	//find a vertice closest the the given coordinates
 	Vertex* findVertex(int x, int y, int z)
@@ -159,7 +270,7 @@ struct Route {
 		return createNode;
 	}
 	//initialize all nodes in the airspace 
-	Route() {
+	Map() {
 		int size = (AIRSPACE_X / CLOSENESS + 1) * (AIRSPACE_Y / CLOSENESS + 1) * (AIRSPACE_Z / CLOSENESS + 1); 
 		totalVertices = 0;
 		allVertices = new Vertex*[size];
@@ -277,14 +388,30 @@ struct Route {
 };
 
 int main() {
-	Route* routes = new Route();
+	Map* routes = new Map();
 	//routes->initialize();
-	Vertex v = Vertex(0, 0, 0);
-	Vertex v2 = Vertex(50, 75, 100);
+	Vertex v1 = Vertex(0, 0, 0);
+	Vertex v2 = Vertex(0, 0, 10);
+	Vertex v3 = Vertex(10, 0, 10);
+	Vertex v4 = Vertex(10, 10, 10);
+	Vertex v5 = Vertex(0, 10, 10);
+	Vertex v6 = Vertex(0, 0, 10);
+	Vertex v7 = Vertex(0, 0, 0);
 	string coordinates;
 	//cin >> coordinates;
-	routes->createObstacle(5,5,5,10,10,10);
-	routes->createObstacle(25,25,25,30,30,30);
-	routes->createRoute(&v, &v2);	
+	//routes->createObstacle(5,5,5,10,10,10);
+	//routes->createObstacle(25,25,25,30,30,30);
+	Route* route1 = routes->createRoute(&v1, &v2);	
+	Route* route2 = routes->createRoute(&v2, &v3);	
+	Route* route3 = routes->createRoute(&v3, &v4);	
+	Route* route4 = routes->createRoute(&v4, &v5);	
+	Route* route5 = routes->createRoute(&v5, &v6);	
+	Route* route6 = routes->createRoute(&v6, &v7);	
+	route1->merge(route2);
+	route1->merge(route3);
+	route1->merge(route4);
+	route1->merge(route5);
+	route1->merge(route6);
+	route1->p();
 	return 0;
 }
