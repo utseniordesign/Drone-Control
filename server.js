@@ -7,7 +7,7 @@ app.use( bodyParser.json() );       // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
   extended: true
 }));
-
+/*
 var con = mysql.createConnection({
   host: 'localhost',
   user: 'michael',
@@ -17,7 +17,7 @@ var con = mysql.createConnection({
 con.connect(function(err) {
   if (err) throw err;
   console.log("Connected!");
-});
+});*/
 const http = require('http');
 const hostname = '127.0.0.1';//'192.168.1.245';//'127.0.0.1';//'10.156.0.248';
 const port = 3000;
@@ -477,7 +477,7 @@ app.get('/droneRoute', function(req, res) {
 	res.status(200).send('ok..');
 });
 app.get('/three', function(req, res) {
-    res.sendFile('./route.html', {root: __dirname});
+    res.sendFile('./testThree.html', {root: __dirname});
 });
 app.get('*', function(req, res) {
     res.sendFile('./test.html', {root: __dirname });

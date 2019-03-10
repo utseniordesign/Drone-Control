@@ -1,0 +1,75 @@
+body { 
+	margin: 0;
+	position: fixed;
+}
+
+#body_wrapper {
+	
+}
+
+.display{
+	margin: 1em;
+	margin-left: 0;
+}
+
+#drone_control_module{
+	position: absolute;
+	right: 0;
+}
+
+#drone_selector{
+	display: inline-block;
+	float: right;
+	max-width: 9%%;
+}
+
+#drone_selector ul{
+	padding-top: 1.5em;
+	padding-right: 1em;
+	padding-left: 0;
+}
+
+#environment_btn {
+	float: right;
+	margin-top: 1.5em;
+	right: 0.5em;
+}
+
+#drone_selector ul li{
+	list-style-type: none;
+	margin: 0.5em;
+}
+
+#control{
+	padding: 1em;
+	float: right;
+	right: 0;
+}
+
+input{
+	width: 2em;
+	height: 2em;
+}
+
+#3d_sim_window { 
+	position: absolute;
+	max-width: 50%;
+	left: 0;
+	top: 0;
+}
+
+.label_coor{
+	min-width: 50em;
+}
+
+#air_space_settings_module{
+	position: absolute;
+	bottom: 3em;
+	left: 2em;
+}
+
+.air_set_in{
+	width: 3.25em;
+	margin-left: 0.25em;
+	margin-right: 0.75em;
+}
