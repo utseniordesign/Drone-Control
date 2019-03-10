@@ -1,6 +1,8 @@
 var express = require('express'); 
-var mysql = require('mysql');
+//var mysql = require('mysql');
 var fs = require('fs');
+var sys = require('util');
+var exec = require('child_process').exec;
 var app = express();
 var bodyParser = require('body-parser');
 app.use( bodyParser.json() );       // to support JSON-encoded bodies
@@ -37,14 +39,9 @@ class Vertex{
 		this.x = x;
 		this.y = y;
 		this.z = z;
-		this.segments = [];
-		/*
-		this.xP = null;
-		this.xN = null;
-		this.yP = null;
-		this.yN = null;
-		this.zP = null;
-		this.zN = null; */
+		this.neighbors = [];
+		this.dist = {x: 10000, y: 10000, z: 10000};
+		this.prev = null;
 	}
 }
 class Segment{
@@ -62,20 +59,60 @@ class Route{
 		this.endLocation = {x: endX, y: endY, z: endZ};
 		this.currentLocation = {x: startX, y: startY, z: startZ};
 		this.vertices = [];
-		this.closeness = 5;
-		this.airSpace = {x : 100, y: 100, z: 100};
  	}
-	static initialize() { 
-		for(var k = 0; k < parseInt(this.airSpace.z); k += this.closeness)
-		{
-			for(var j = 0; j < parseInt(this.airSpace.y); j += this.closeness)
+	static initializeVertices()
+	{
+		Route.createVertices = [];
+		Route.allVertices.vertices.forEach(function (vertex) {
+			vertex.dist = {x: 100000, y: 10000, z: 10000};
+			vertex.prev = null;
+			vertex.visited = false;
+			Route.createVertices.push(vertex);
+		});
+
+	}
+	static findVertex(x, y, z)
+	{
+		var createNode = null;
+		var differenceOriginal = -1;
+		var zClosest = null;
+		Route.allVertices.vertices.forEach(function(vertex) {
+			var xDifference = Math.abs(x - parseInt(vertex.x));
+			var yDifference = Math.abs(y - parseInt(vertex.y));
+			var zDifference = Math.abs(z - parseInt(vertex.z));
+				
+			var difference = xDifference + yDifference + zDifference;
+			if(createNode == null)
 			{
-				for(var i = 0; i < parseInt(this.airSpace.x); i += this.closeness)
+				//console.log(vertex.x + " " + vertex.y + " " + vertex.z);
+				createNode = vertex;
+				differenceOriginal = difference;
+				return;
+			}
+			if(difference < differenceOriginal)
+			{
+				//console.log(vertex.x + " " + vertex.y + " " + vertex.z);
+				createNode = vertex;
+				differenceOriginal = difference;
+			}
+		});
+		//console.log(createNode);
+		return createNode;
+	}
+	static initialize() { 
+		/*creating route vertices*/
+		for(var k = 0; k < parseInt(Route.airSpace.z); k += Route.closeness * Route.zScale)
+		{
+			Route.levels.push({level: k, traffic: 0});
+			for(var j = 0; j < parseInt(Route.airSpace.y); j += Route.closeness)
+			{
+				for(var i = 0; i < parseInt(Route.airSpace.x); i += Route.closeness)
 				{
 					Route.allVertices.vertices.push(new Vertex(i, j, k));
 				}
 			}
 		}
+		/*creating route segments*/
 		for(var i = 0; i < Route.allVertices.vertices.length; i++)
 		{
 			var curVertex = Route.allVertices.vertices[i];
@@ -90,70 +127,113 @@ class Route{
 					var checkX = parseInt(checkVertex.x);
 					var checkY = parseInt(checkVertex.y);
 					var checkZ = parseInt(checkVertex.z);
-					var closeToX = (curX + this.closeness >= checkX) && (curX - this.closeness <= checkX);
-					var closeToY = (curY + this.closeness >= checkY) && (curY - this.closeness <= checkY);
-					var closeToZ = (curZ + this.closeness >= checkZ) && (curZ - this.closeness <= checkZ);
+					var closeToX = (curX + Route.closeness >= checkX) && (curX - Route.closeness <= checkX);
+					var closeToY = (curY + Route.closeness >= checkY) && (curY - Route.closeness <= checkY);
+					var closeToZ = (curZ + Route.closeness >= checkZ) && (curZ - Route.closeness <= checkZ);
 					if(closeToX && closeToY && closeToZ)
 					{
-						var contains = false;
-						checkVertex.segments.forEach(function (segment){
-							if(segment.vertexA == curVertex)
-								contains = true;
-							if(segment.vertexB == curVertex)
-								contains = true;
-						});
-						//curVertex.segments.push(new)
+						curVertex.neighbors.push(checkVertex);
 					}
-					/*
-					for(var k = 0; k < checkVertex.segments.length; k++)
-					{
-						if(checkVertex.segments[k].vertexA.x == )
-					}*/
+
 				}
 			}
+			//console.log(Route.allVertices.vertices[0]);// + " "  + Route.allVertices.vertices[0].neighbors);
 		}
-		Route.allVertices.vertices.forEach(function(vertex) {
-			
-
-		});
 	}
 	/*Createsa route*/
-	createRoute(routes) {
-		
+	createRoute(routes) {	
+		Route.initializeVertices();	
 		this.createDirection = -1;//used to create routes
-
-		var createNode = {x: this.startLocation.x, y: this.startLocation.x, z: this.startLocation.z}
-		this.vertices.push({x: createNode.x, y: createNode.y, z: createNode.z});
-		var i = 0;
-		while(createNode.x != this.endLocation.x || createNode.y != this.endLocation.y || createNode.z != this.endLocation.z)
+		var differenceOriginal = -1;
+		var startX = parseInt(this.startLocation.x);
+		var startY = parseInt(this.startLocation.y);
+		var startZ = parseInt(this.startLocation.z);
+		var startNode = Route.findVertex(startX, startY, startZ);
+		this.vertices.push(startNode);
+		/*Evaluate flight height*/
+		var minLevel;	
+		var endX = parseInt(this.endLocation.x);
+		var endY = parseInt(this.endLocation.y);
+		var endZ = parseInt(this.endLocation.z);
+		var endNode = Route.findVertex(endX, endY, endZ);
+		endNode.visited = true;
+		endNode.dist = {x: 0, y: 0, z: 0};
+		//console.log(endNode);
+		var numLevels = Math.abs(parseInt(startNode.z) - parseInt(endNode.z));
+		while(Route.createVertices.length > 0)
 		{
+			//find closest
+			var closest = {
+				vertex: Route.createVertices[0],
+				index: 0
+			};
 			
-			/*var closeEnoughX = (parseInt(createNode.x) + this.closeness == parseInt(this.endLocation.x)) || (parseInt(createNode.x) - this.closeness == parseInt(this.endLocation.x)) || createNode.x == this.endLocation.x
-			var closeEnoughY = (parseInt(createNode.y) + this.closeness == parseInt(this.endLocation.y)) || (parseInt(createNode.y) - this.closeness == parseInt(this.endLocation.y)) || createNode.y == this.endLocation.y
-			var closeEnoughZ = (parseInt(createNode.z) + this.closeness == parseInt(this.endLocation.z)) || (parseInt(createNode.z) - this.closeness == parseInt(this.endLocation.z)) || createNode.z == this.endLocation.z
-			if(closeEnoughX && closeEnoughY && closeEnoughZ)
+			for(var i = 0; i < Route.createVertices.length; i++)
 			{
-				createNode.x = this.endLocation.x
-				createNode.y = this.endLocation.y
-				createNode.z = this.endLocation.z
-				break;
+				var closestDistance = 
+					(parseInt(closest.vertex.dist.x) * parseInt(closest.vertex.dist.x)) + 
+					(parseInt(closest.vertex.dist.y) * parseInt(closest.vertex.dist.y)) + 
+					(parseInt(closest.vertex.dist.z) * parseInt(closest.vertex.dist.z));
+				var curDistance = 
+					(parseInt(Route.createVertices[i].dist.x) * parseInt(Route.createVertices[i].dist.x)) + 
+					(parseInt(Route.createVertices[i].dist.y) * parseInt(Route.createVertices[i].dist.y)) + 
+					(parseInt(Route.createVertices[i].dist.z) * parseInt(Route.createVertices[i].dist.z)); 
+				//console.log(Route.createVertices[i]);
+				if(curDistance < closestDistance)
+				{
+					closest.vertex = Route.createVertices[i];
+					closest.index = i;
+				}
 			}
-			*/
-			console.log(createNode.x + " " + createNode.y + " " + createNode.z);
-			if(this.iterateRoute(createNode, routes) == -1)
-			{
-				return;
-			}
-			i++;
-			if(i == 100)
-				break;
+			//console.log(closest.vertex.neighbors);
+			
+			Route.createVertices.splice(parseInt(closest.index), 1);//remove element from array
+			//if(closest.vertex == startNode)
+			//	break;
+			closest.vertex.neighbors.forEach(function(neighbor){
+				var segment = {
+					x: Math.abs(parseInt(neighbor.x) - parseInt(closest.vertex.x)), 
+					y: Math.abs(parseInt(neighbor.y) - parseInt(closest.vertex.y)), 
+					z: Math.abs(parseInt(neighbor.z) - parseInt(closest.vertex.z))
+				};
+				//console.log(segment);
+				//find alternate distance from endNode
+				var altDist = 
+					((parseInt(closest.vertex.dist.x) + parseInt(segment.x)) * (parseInt(closest.vertex.dist.x) + parseInt(segment.x))) +
+					((parseInt(closest.vertex.dist.y) + parseInt(segment.y)) * (parseInt(closest.vertex.dist.y) + parseInt(segment.y))) +
+					((parseInt(closest.vertex.dist.z) + parseInt(segment.z)) * (parseInt(closest.vertex.dist.z) + parseInt(segment.z)));
+				//find current distance from endNode
+				var neighborDist =
+					(parseInt(neighbor.dist.x) * parseInt(neighbor.dist.x)) +
+					(parseInt(neighbor.dist.y) * parseInt(neighbor.dist.y)) +
+					(parseInt(neighbor.dist.z) * parseInt(neighbor.dist.z));
+				//console.log(altDist + " " + neighborDist);
+				if(altDist < neighborDist)
+				{
+					neighbor.prev = closest.vertex
+					neighbor.dist.x = parseInt(closest.vertex.dist.x) + parseInt(segment.x);
+					neighbor.dist.y = parseInt(closest.vertex.dist.y) + parseInt(segment.y);
+					neighbor.dist.z = parseInt(closest.vertex.dist.z) + parseInt(segment.z);
+				}
+			});
+			//console.log(closest.vertex.neighbors);
+			//break;
 		}
-		this.vertices.push({x: createNode.x, y: createNode.y, z: createNode.z});
+		var printNode = startNode;
+		while(printNode != null)
+		{
+			//console.log(printNode);
+			this.vertices.push(printNode);
+			//routes.routes.push(printNode);
+			printNode = printNode.prev;
+		}
+		/*
+		*/
 		routes.routes.push(this);
 	}
 	evaluateSafeness(routes, modified) {
 		var safeDirections = {x: true, y: true, z: true};	
-		var closeness = this.closeness;
+		var closeness = Route.closeness;
 		routes.routes.forEach(function(route) {
 			for(var i = 1; i < route.vertices.length; i++)
 			{
@@ -203,227 +283,78 @@ class Route{
 	/*iterates through other routes to see where the route can be built*/
 	iterateRoute(node, routes) {
 		/* Evaluating which direction a drone should move in each axis */
+		//console.log("Node: " + node.x + " " + node.y + " " + node.z);
+		//console.log(node.segments);
 		var xDifference = 0;
 		var yDifference = 0;
 		var zDifference = 0;
-		if(this.endLocation.x - node.x > 0)
+		if(parseInt(this.endLocation.x) - parseInt(node.x) > 0)
 		{
 			xDifference = 1;
 		}
-		else if(this.endLocation.x - node.x < 0)
+		else if(parseInt(this.endLocation.x) - parseInt(node.x) < 0)
 		{
 			xDifference = -1;
 		}
-		if(this.endLocation.y - node.y > 0)
+		if(parseInt(this.endLocation.y) - parseInt(node.y) > 0)
 		{
 			yDifference = 1;
 		}
-		else if(this.endLocation.y - node.y < 0)
+		else if(parseInt(this.endLocation.y) - parseInt(node.y) < 0)
 		{
 			yDifference = -1;
 		}
-		if(this.endLocation.z - node.z > 0)
+		if(parseInt(this.endLocation.z) - parseInt(node.z) > 0)
 		{
 			zDifference = 1;
 		}
-		else if(this.endLocation.z - node.z < 0)
+		else if(parseInt(this.endLocation.z) - parseInt(node.z) < 0)
 		{
 			zDifference = -1;
 		}
-		//console.log(node.x + " " + xDifference);
-		for(var i = 0; i < 2; i++)
-		{
-			var xModified;
-			var yModified;
-			var zModified;
-			if(i == 0)
+		for(var i = 0; i < node.segments.length; i++) {
+			var nodeNext;
+			var segment = node.segments[i];
+			if(segment.vertexA == node)
 			{
-				xModified = parseInt(node.x) + parseInt(xDifference);
-				yModified = parseInt(node.y) + parseInt(yDifference);
-				zModified = parseInt(node.z) + parseInt(zDifference);
+				nodeNext = segment.vertexB;
 			}
-			/*
 			else
 			{
-				xModified = parseInt(node.x) - parseInt(xDifference) * (this.closeness + 1);
-				yModified = parseInt(node.y) - parseInt(yDifference) * (this.closeness + 1);
-				zModified = parseInt(node.z) - parseInt(zDifference) * (this.closeness + 1);
+				nodeNext = segment.vertexA;
 			}
-			*/
-				//console.log("x: " + xModified + " y: " + yModified + " z: " + zModified);
-			/*Evaluate if there is a collision among other routes*/
-			/*does not take into account current drone locations*/
-			/*does not take into account obstacles*/
-			/*does not take into account safe distance*/
-			console.log("Can Change: " + xDifference + " " + yDifference + " " + zDifference + " ");
-			var modified;
-			var safeDirections;
-			if(xDifference != 0)
+			//console.log(nodeNext);
+			var safeToAddX = (xDifference == 1 && parseInt(nodeNext.x) > parseInt(node.x)) 
+				|| (xDifference == -1 && parseInt(nodeNext.x) < parseInt(node.x)) 
+				|| (xDifference == 0 && parseInt(nodeNext.x) == parseInt(node.x));
+			var safeToAddY = (yDifference == 1 && parseInt(nodeNext.y) > parseInt(node.y)) 
+				|| (yDifference == -1 && parseInt(nodeNext.y) < parseInt(node.y))
+				|| (yDifference == 0 && parseInt(nodeNext.y) == parseInt(node.y));
+			var safeToAddZ = (zDifference == 1 && parseInt(nodeNext.z) > parseInt(node.z)) 
+				|| (zDifference == -1 && parseInt(nodeNext.z) < parseInt(node.z)) 
+				|| (zDifference == 0 && parseInt(nodeNext.z) == parseInt(node.z));
+			//console.log(safeToAddX + " " + safeToAddY + " " + safeToAddZ);
+			if(safeToAddX && safeToAddY && safeToAddZ)
 			{
-				modified = {x: xModified, y: parseInt(node.y), z: parseInt(node.z)};
-				safeDirections = this.evaluateSafeness(routes, modified);
-				console.log("X change: " + safeDirections.x + " " + safeDirections.y + " " + safeDirections.z);
-				if(safeDirections.x)
-				{				
-					if(this.createDirection == -1)
-						this.createDirection = X;
-					else if(this.createDirection != X)
-					{
-						this.createDirection = X;
-						this.vertices.push({x: node.x, y: node.y, z: node.z});
-					}
-					node.x = modified.x;
-					return X;
-				}
+				this.vertices.push(nodeNext);
+				this.iterateRoute(nodeNext, routes);
+				return;
 			}
-			if(yDifference != 0)
-			{
-				modified = {x: parseInt(node.x), y: yModified, z: parseInt(node.z)};
-				safeDirections = this.evaluateSafeness(routes, modified);
-				console.log("Y change: " + safeDirections.x + " " + safeDirections.y + " " + safeDirections.z);
-				if(safeDirections.y)
-				{				
-					if(this.createDirection == -1)
-						this.createDirection = Y;
-					else if(this.createDirection != Y)
-					{
-						this.createDirection = Y;
-						this.vertices.push({x: node.x, y: node.y, z: node.z});
-					}
-					node.y = modified.y;
-					return Y;
-				}
-			}
-			if(zDifference != 0)
-			{
-				modified = {x: parseInt(node.x), y: parseInt(node.y), z: zModified};
-				safeDirections = this.evaluateSafeness(routes, modified);
-				console.log("Z change: " + safeDirections.x + " " + safeDirections.y + " " + safeDirections.z);
-				if(safeDirections.z)
-				{				
-					if(this.createDirection == -1)
-						this.createDirection = Z;
-					else if(this.createDirection != Z)
-					{
-						this.createDirection = Z;
-						this.vertices.push({x: node.x, y: node.y, z: node.z});
-					}
-					node.z = modified.z;
-					return Z;
-				}
-			}
-			var closeEnoughX = (parseInt(node.x) + this.closeness == parseInt(this.endLocation.x)) || (parseInt(node.x) - this.closeness == parseInt(this.endLocation.x));
-			var closeEnoughY = (parseInt(node.y) + this.closeness == parseInt(this.endLocation.y)) || (parseInt(node.y) - this.closeness == parseInt(this.endLocation.y));
-			var closeEnoughZ = (parseInt(node.z) + this.closeness == parseInt(this.endLocation.z)) || (parseInt(node.z) - this.closeness == parseInt(this.endLocation.z));
-			if(closeEnoughX)
-			{
-				if(this.createDirection != X)
-				{
-					this.vertices.push({x: node.x, y: node.y, z: node.z});
-				}
-				node.x = this.endLocation.x;
-				console.log("close enough");
-				return X;
-			}
-			if(closeEnoughY)
-			{
-				if(this.createDirection != Y)
-				{
-					this.vertices.push({x: node.x, y: node.y, z: node.z});
-				}
-				node.y = this.endLocation.y;
-				console.log("close enough");
-				return Y;
-			}
-			if(closeEnoughZ)
-			{
-				if(this.createDirection != Z)
-				{
-					this.vertices.push({x: node.x, y: node.y, z: node.z});
-				}
-				node.z = this.endLocation.z;
-				console.log("close enough");
-				return Z;
-			}
-			/*Determine where a valid change to route can be*/
-			/*add a vertex if needed*/
-			/*
-			if(safeDirections.x && xDifference != 0)
-			{
-				if(this.createDirection == -1)
-					this.createDirection = X;
-				else if(this.createDirection != X)
-				{
-					this.createDirection = X;
-					this.vertices.push({x: node.x, y: node.y, z: node.z});
-				}
-				node.x = modified.x;
-			//console.log(xModified);
-				return X;
-			}
-			if(safeDirections.y && yDifference != 0)
-			{
-				if(this.createDirection == -1)
-					this.createDirection = Y;
-				else if(this.createDirection != Y)
-				{
-					this.createDirection = Y;
-					this.vertices.push({x: node.x, y: node.y, z: node.z});
-				}
-				node.y = modified.y;
-			//console.log(modified.y);
-				return Y;
-			}
-			if(safeDirections.z && zDifference != 0)
-			{
-				if(this.createDirection == -1)
-					this.createDirection = Z;
-				else if(this.createDirection != Z)
-				{
-					this.createDirection = Z;
-					this.vertices.push({x: node.x, y: node.y, z: node.z});
-				}
-				node.z = modified.z;
-				//console.log(zModified);
-				return Z;
-			}
-			*/
-			console.log("Need to avoid obstacle");
-			if(this.createDirection == X || this.createDirection == Y)
-			{
-				this.vertices.push({x: node.x, y: node.y, z: node.z});
-			}
-			this.createDirection = Z;
-			node.z = parseInt(node.x) + (parseInt(this.closeness) + 1) * parseInt(zDifference);
-			return Z;
 		}
-		Route.allVertices = {};
-
-		/*placeholder for now*/
-		/*
-		else
-		{
-			if(this.createDirection == -1)
-				this.createDirection = X;
-			else if(this.createDirection != X)
-			{
-				this.createDirection = X;
-				this.vertices.push({x: node.x, y: node.y, z: node.z});
-			}
-			node.x = xModified;
-			console.log(xModified);
-			return X;
-		}*/
-		/*
-		console.log("Failed x: "  + node.x + " y: " + node.y + " z: " + node.z);
-		return -1;
-		*/
 	}
 	/*JUNK*/
- 	print(){
+ 	/*
+	print(){
     		console.log('Name is :'+ this.name);
- 	}
+ 	}*/
 };
+Route.allVertices = { vertices: [] };
+Route.createVertices = [];
+Route.levels = [];
+Route.airSpace = {x : 100, y: 100, z: 100};
+Route.closeness = 5;
+Route.zScale = 1;
+Route.initialize();
 var routes = {
 	count: 0,
 	routes: []
@@ -436,23 +367,24 @@ app.post('/createRoute', function(req, res) {
 	var endX = positions.endX;
 	var endY = positions.endY;
 	var endZ = positions.endZ;
+	var pid = positions.pid;
 	var startNode = {x: startX, y: startY, z: startZ};
 	var route = new Route(startX, startY, startZ, endX, endY, endZ);
 	route.createRoute(routes);
-	//route.vertices.push({x: startX, y: 0, z: 0});
-	//route.vertices.push({x: startX, y: startY, z: 0});
-	//route.vertices.push({x: startX, y: startY, z: startZ});
-	console.log("Vertices Below");
+	//console.log("Vertices Below");
+	var resultRoute = { vertices: [] };
+	var cmd = 'echo "' + startX +  ' ' + startY + ' ' + startZ + ' ' + endX + ' ' + endY + ' ' + endZ + '\n" > /proc/' + pid + '/fd/0';
+	exec(cmd, function(err, stdout, stderr) {
+  		if (err) {
+    		// should have err.code here?  
+  		}
+  		console.log(stdout);
+	});
 	route.vertices.forEach(function(vertex) {
-		console.log("x: " + vertex.x + " y: " + vertex.y + " z: " + vertex.z);
+		//console.log("x: " + vertex.x + " y: " + vertex.y + " z: " + vertex.z);
+		resultRoute.vertices.push({x: vertex.x, y: vertex.y, z: vertex.z});
 	});
-	res.json(route);	
-	/*
-	routes.route.forEach(function(route) {
-		route	
-	});
-	*/
-	
+	res.json(resultRoute);		
 });
 app.post('/droneRoute', function(req, res) {
 	var routeId;
@@ -464,11 +396,8 @@ app.post('/droneRoute', function(req, res) {
 		console.log("X: " + vector.x + " Y: " + vector.y + " Z: " + vector.z);
 		con.query("INSERT INTO example (x, y, z, routeid) VALUES ('" + vector.x + "', '" + vector.y  + "', '" + vector.z + "', '" + routeId + "')");
 	});
-	
-	//console.log("sent: " + req.body.vertices.vectors);
 });
 app.get('/droneRoute', function(req, res) {
-	//con.query("INSERT INTO example (x, y, z, routeid) VALUES ('0', '1', '2', '0')");
 	con.query("SELECT x, y, z, routeid from example where routeid = 0", function(error, result){
 		result.forEach(function(vector){
 			console.log(vector.x + vector.y)
@@ -481,8 +410,6 @@ app.get('/three', function(req, res) {
 });
 app.get('*', function(req, res) {
     res.sendFile('./test.html', {root: __dirname });
-    //res.sendFile('./test.html');
-    //res.status(200).send('ok');
 });
 
 
