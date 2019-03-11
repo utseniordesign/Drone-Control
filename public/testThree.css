@@ -20,7 +20,6 @@ body {
 #drone_selector{
 	display: inline-block;
 	float: right;
-	max-width: 9%;
 }
 
 #drone_selector ul{
