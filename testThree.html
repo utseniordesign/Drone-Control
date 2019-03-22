@@ -43,6 +43,17 @@
 							<input id="endY"></input>
 							<input id="endZ"></input>
 						</div>
+						<div>
+							<div class = display><b>Route Process ID:</b></div>
+							<input id="pid"></input>
+						</div>
+						<div>
+							<h2>Set Position</h2>
+							<b>X: </b><input id="posX"></input>
+							<b>Y: </b><input id="posY"></input>
+							<b>Z: </b><input id="posZ"></input>
+							<button input="button" onclick="setPosition()">Update</button>
+						</div>
 						<button class = display input="button" id="createRouteButton" onclick="createRoute()">Create</button>
 					</div>
 				</div>
@@ -51,10 +62,11 @@
 						<li><button input = "button" id = "drone_1_btn" onclick = "drone_selection(1)">Drone 1</button></li>
 						<li><button input = "button" id = "drone_2_btn" onclick = "drone_selection(2)">Drone 2</button></li>
 						<li><button input = "button" id = "drone_3_btn" onclick = "drone_selection(3)">Drone 3</button></li>
+						<li><button input="button" onclick="getRoute()">Get Route</button></li>
 					</ul>
 					<button input = "button" id = "environment_btn" onclick = "">Environment</button>
 				</div>
-				
+					
 			</div>
 			
 			<div id = air_space_settings_module>
@@ -84,6 +96,7 @@
 				<button input = "button" id = clear_console onclick = "clear_console()">Clear</button>
 			</div>
 		</div>
+		<script src="testThree.js"></script>
 		<script src="Console.js"></script>
 		<script src="3D_Airspace_Model.js"></script>
 		<script src="Button_Functions.js"></script>

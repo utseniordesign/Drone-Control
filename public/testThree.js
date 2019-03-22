@@ -1,10 +1,32 @@
 var createRoute = function() {
-	var startX = $("#startX").text(); 
-	var startY = $("#startY").text(); 
-	var startZ = $("#startZ").text(); 
-	var endX = $("#endX").text(); 
-	var endY = $("#endY").text(); 
-	var endZ = $("#endZ").text(); 
+	var startX = $("#startX").val(); 
+	var startY = $("#startY").val(); 
+	var startZ = $("#startZ").val(); 
+	var endX = $("#endX").val(); 
+	var endY = $("#endY").val(); 
+	var endZ = $("#endZ").val(); 
+	var coordinates = {
+		startX: startX,
+		startY: startY,
+		startZ: startZ,
+		endX: endX,
+		endY: endY,
+		endZ: endZ
+	};
+	$.ajax({
+		type: "POST",
+		url: "/createRoute",
+		data: coordinates,
+		dataType: "json",
+		cache: false,
+		success: function (data) {
+                	//Success = true;//doesnt goes here
+			console.log(data);
+            	},
+            	error: function (textStatus, errorThrown) {
+                	//Success = false;//doesnt goes here
+            	}
+	});
 }
 
 /* GENERAL APP SETUP */
@@ -284,6 +306,44 @@ var sendRoute = function () {
 					cache: false,
 	});
 
+}
+
+var getRoute = function () {
+	$.ajax({
+		type: "GET",
+		url: "/getRoute",
+		data: {id: 0},
+		dataType: "json",
+		cache: false,
+		success: function (data) {
+                	//Success = true;//doesnt goes here
+			console.log(data);
+            	},
+            	error: function (textStatus, errorThrown) {
+                	//Success = false;//doesnt goes here
+            	}
+	});
+}
+var setPosition = function () {
+	var posX = $("#posX").val(); 
+	var posY = $("#posY").val(); 
+	var posZ = $("#posZ").val(); 
+	var loc = { x: posX, y: posY, z: posZ};
+	console.log(loc);
+	$.ajax({
+		type: "GET",
+		url: "/setPosition",
+		data: loc,
+		dataType: "json",
+		cache: false,
+		success: function (data) {
+                	//Success = true;//doesnt goes here
+			console.log(data);
+            	},
+            	error: function (textStatus, errorThrown) {
+                	//Success = false;//doesnt goes here
+            	}
+	});
 }
 var updateRotation = function () {
 	console.log(camera.position.x);

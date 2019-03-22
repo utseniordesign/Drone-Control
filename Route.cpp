@@ -2,7 +2,12 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
 #include <string>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
 #define AIRSPACE_X 100
 #define AIRSPACE_Y 100
 #define AIRSPACE_Z 100
@@ -38,6 +43,11 @@ struct Vertex{
 	{
 		printf("x:%d y:%d z:%d\n", x, y, z);
 	}
+	void p(int droneId)
+	{
+		//print("d:")
+		printf("d:%d x:%d y:%d z:%d\n", droneId, x, y, z);
+	}
 };
 struct Drone {
 	double x;
@@ -57,6 +67,10 @@ struct Drone {
 	{
 		this->route = route;
 	}
+	Route* getRoute()
+	{
+		return route;
+	}
 	bool evaluatePositioningData(double x, double y, double z) 
 	{
 	}
@@ -69,6 +83,10 @@ struct Drone {
 	{
 		setPosition(0, 0, 0);
 	}
+	void p() 
+	{
+		//route->p();
+	}
 };
 struct Drones {
 	Drone* drones;
@@ -77,6 +95,9 @@ struct Drones {
 	{
 		drones = new Drone[5];
 		count = 0;
+	}
+	Drone* operator[](int index) {
+		return getDrone(index);
 	}
 	void addDrone(int x, int y, int z)
 	{
@@ -98,14 +119,31 @@ struct Route {
 		this->length = length;
 		this->vertices = new Vertex*[length];
 	}
+	Vertex* operator[](int index)
+	{
+		return vertices[index];
+	}
 	void addVertex(Vertex* v, int i)
 	{
 		vertices[i] = v;
+	}
+	void containsVertex(Vertex* v)
+	{
+		for(int i = 0; i < length; i++)
+		{
+			Vertex* cur = vertices[i];
+			//if(v->x == cur->x && v->x == cur->x && v->z == cur->z)
+		}
 	}
 	void p()
 	{
 		for(int i = 0; i < length; i++)
 			vertices[i]->p();
+	}
+	void p(int droneId)
+	{
+		for(int i = 0; i < length; i++)
+			vertices[i]->p(droneId);
 	}
 	void merge(Route* route)
 	{
@@ -134,6 +172,9 @@ struct Map {
 	{
 		drones.addDrone(x, y, z);
 	}
+	Drone* operator[](int index) {
+		return drones[index];
+	}
 	//update drone position
 	void updateDrones(int* x, int* y, int* z, int* id, int count)
 	{
@@ -143,8 +184,13 @@ struct Map {
 			drone->setPosition(x[i], y[i], z[i]);
 		}
 	}
+	//Publishes the route to ROS
+	void publishRouteToROS(Route* route, int droneId)
+	{
+	}
 	//evaluates if the positioning data from the image processing is a conflict
 	bool evaluatePositioningData(double x, double y, double z, int id) {
+		/*
 		Drone* d = getDrone(id)
 		double dx = d->x;
 		double dy = d->y;
@@ -153,6 +199,9 @@ struct Map {
 		if (pow(x - dx, 2) > threshold || pow(y - dy, 2) > threshold || pow(z - dz, 2) > threshold){
 			return false;
 		}
+		//evaluate collision path
+		Vertex* v = findVertex((int)dx, (int)dy, (int)dz);
+		*/
 		return true;
 	}
 	//update drone path
@@ -264,6 +313,11 @@ struct Map {
 		}
 		//route->p();
 		delete vertices;
+
+		/*only works for one drone atm*/
+		addDrone(start->x, start->y, start->z);
+		Drone* drone = this->drones[0];
+		drone->setRoute(route);
 		return route;
 	}
 	//find a vertice closest the the given coordinates
@@ -409,10 +463,24 @@ struct Map {
 		delete allVertices;
 	}
 };
-//
+void getToken(char** token, int* val);
+
 int main() {
+	/*
+	string serverIdString;
+	cin >> serverIdString;
+	//int serverPID = atoi(serverIdString.c_str());
+	string connectToServerText = "echo \"Hello World PID: \n" + serverIdString + "\" > /proc/" + serverIdString + "/fd/1";
+	int status = system(connectToServerText.c_str());
+	*/
+	pid_t pid = getpid();	
+	ofstream myfile;
+  	myfile.open("routePid.txt");
+  	myfile << (int)pid;
+  	myfile.close();
+	
 	Map routes = Map();
-	//routes->initialize();
+	/*
 	Vertex v1 = Vertex(0, 0, 0);
 	Vertex v2 = Vertex(0, 0, 10);
 	Vertex v3 = Vertex(10, 0, 10);
@@ -421,6 +489,7 @@ int main() {
 	Vertex v6 = Vertex(0, 0, 10);
 	Vertex v7 = Vertex(0, 0, 0);
 	string coordinates;
+	
 	//cin >> coordinates;
 	//routes->createObstacle(5,5,5,10,10,10);
 	//routes->createObstacle(25,25,25,30,30,30);
@@ -435,10 +504,118 @@ int main() {
 	route1->merge(route4);
 	route1->merge(route5);
 	route1->merge(route6);
+	route1->p(0);
+	//Drone drone();
+	//drone.setRoute(route1);
+	//drone.p();
+	*/
+	
 	int id = 0;
+	/*
 	routes.addDrone(0, 0, 0);
 	routes.setRoute(route1, 0);
-	route1->p();
-	cin >> id;
+	*/
+	//route1->p();
+	
+	string command = "";
+	while(command.compare("end"))
+	{
+		//string numberOfCommands;
+		//cin >> numberOfCommands;
+		//int argsCount = atoi(myString.c_str());
+		//string command;
+		cin >> command;
+		/*
+		ifstream serverfile;
+  		serverfile.open("route.txt");
+  		serverfile >> command;
+  		serverfile.close();
+		cout << "cmd: " << command.c_str() << "end\n";
+		*/
+		/*	
+		char arr[20];
+		const char* commandChar = command.c_str();
+		cout << "token: " << command << endl;
+		for(int i = 0; i < strlen(commandChar) + 1; i++)
+		{
+			arr[i] = commandChar[i];
+		}
+		cout << "arr: " << arr << endl;
+		*/
+		/*
+		char* token = arr;
+		int tokenI = 0;
+		while(token[tokenI] != 0 && token[tokenI] != ' ')
+			tokenI++;
+		token[tokenI] = 0;
+		token += tokenI + 1;
+		cout << tokenI;
+		*/		
+		
+		if(strcmp(command.c_str(), "new") == 0)//new 0 0 0 5 5 5
+		{
+			int startX, startY, startZ, endX, endY, endZ;
+			/*
+			cout << "m";	
+			getToken(&token, &startX);
+			cout << "m";	
+			*/
+			cin >> command;
+			startX = atoi(command.c_str());
+			cin >> command;
+			startY = atoi(command.c_str());
+			cin >> command;
+			startZ = atoi(command.c_str());
+			cin >> command;
+			endX = atoi(command.c_str());
+			cin >> command;
+			endY = atoi(command.c_str());
+			cin >> command;
+			endZ = atoi(command.c_str());
+			/*
+			getToken(&token, &startY);
+			getToken(&token, &startZ);
+			getToken(&token, &endX);
+			getToken(&token, &endY);
+			getToken(&token, &endZ);
+			*/
+			Vertex a = Vertex(startX, startY, startZ);
+			Vertex b = Vertex(endX, endY, endZ);
+			Route* newRoute = routes.createRoute(&a, &b);	
+			newRoute->p(0);//transmit to node server
+		}
+		else if(strcmp(command.c_str(), "get") == 0)//get
+		{
+			string pid_str;
+			ifstream serverfile;
+  			serverfile.open("routePid.txt");
+  			serverfile >> pid_str;
+  			serverfile.close();
+			Route* route = routes[0]->getRoute();
+			string size = to_string(route->length) + '\n';
+			string pidCmd = "/proc/" + pid_str + "/fd/0";
+			string lengthCmd = "printf \"" + size + "\n\" > " + pidCmd;
+			system(lengthCmd.c_str());
+			for(int i = 0; i < route->length; i++) {
+				Vertex* v = (*route)[i];
+				string cmd = "echo \"" + to_string(v->x) +  " " + to_string(v->y) + " " + to_string(v->z) + "\" > " + pidCmd;
+				system(cmd.c_str());
+			}
+		}
+		cin.clear();
+		
+		//break;
+	
+	}
+	cin >> command;
 	return 0;
+}
+
+void getToken(char** token, int* val)
+{
+			char* t = *token;
+			unsigned int tokenI = (unsigned int)(strchr(t, ' ') - t);
+			t[tokenI] = 0;
+			(*val) = atoi(t);
+			(*token) = t + tokenI + 1;
 }
