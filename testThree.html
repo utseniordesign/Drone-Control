@@ -1,10 +1,9 @@
 <html>
 	<head>
-		<title>My first three.js app</title>
 		<link rel="stylesheet" type="text/css" href="testThree.css">
 		<link rel="stylesheet" type="text/css" href="Console.css">
 		
-		<title>3D Test Simulation</title>
+		<title>UAV Controller</title>
 	</head>
 	
 	<body>
@@ -21,28 +20,22 @@
 			
 			<div id = control_module>
 				<div id = control>
-					<h1 id = selection_title></h1>
-					<hr>
-					<div class = display id = angle_display>
-						<b>X Angle: </b><input id="XAngleText"></input>
-						<b>Y Angle: </b><input id="YAngleText"></input>
-						<b>Z Angle: </b><input id="ZAngleText"></input>
-					</div>
-					<div class = display id = button_send_route>
-						<button input="button" id="sendRouteButton" onclick="sendRoute()">Send</button>
-					</div>
+					<h1 id = selection_title>Drone 1</h1>
 					<hr>
 					<div class = display id = route_start_end>
 						<div>
-							<div class = display><b>Starting Coordinates (x, y, z):</b></div><input id="startX"></input>
+							<div class = display><b>Starting Coordinates (x, y, z):</b></div>
+							<input id="startX"></input>
 							<input id="startY"></input>
 							<input id="startZ"></input>
 						</div>
 						<div>
-							<div class = display><b>Ending Coordinates (x, y ,z):</b></div><input id="endX"></input>
+							<div class = display><b>Ending Coordinates (x, y ,z):</b></div>
+							<input id="endX"></input>
 							<input id="endY"></input>
 							<input id="endZ"></input>
 						</div>
+<<<<<<< HEAD
 						<div>
 							<div class = display><b>Route Process ID:</b></div>
 							<input id="pid"></input>
@@ -55,6 +48,9 @@
 							<button input="button" onclick="setPosition()">Update</button>
 						</div>
 						<button class = display input="button" id="createRouteButton" onclick="createRoute()">Create</button>
+=======
+						<button class = display input="button" id="createRouteButton" onclick="send_coor()">Create</button>
+>>>>>>> b833fb4adc1d9d0e57942e7d8db82fcd437a1aae
 					</div>
 				</div>
 				<div id = drone_selector>
@@ -64,7 +60,7 @@
 						<li><button input = "button" id = "drone_3_btn" onclick = "drone_selection(3)">Drone 3</button></li>
 						<li><button input="button" onclick="getRoute()">Get Route</button></li>
 					</ul>
-					<button input = "button" id = "environment_btn" onclick = "">Environment</button>
+					<button input = "button" id = "environment_btn" onclick = "environment_selection()">Environment</button>
 				</div>
 					
 			</div>
