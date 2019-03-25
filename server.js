@@ -1,10 +1,19 @@
-var express = require('express'); 
 //var mysql = require('mysql');
 var fs = require('fs');
+var p = require('process');
+if(p.pid) {
+	fs.writeFile("serverPid.txt", p.pid, function(err) {
+    		if(err) {
+        		return console.log(err);
+    		}
+	}); 
+}
+var express = require('express'); 
 var sys = require('util');
 var exec = require('child_process').exec;
 var app = express();
 var bodyParser = require('body-parser');
+var readline = require('readline');
 app.use( bodyParser.json() );       // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
   extended: true
@@ -26,6 +35,51 @@ const port = 3000;
 const X = 0;
 const Y = 1;
 const Z = 2;
+const routerConnection = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+var drones = { drones: [] };
+routerConnection.on('line', (input) => {
+	var droneIndex = 0;
+	var coordinates = {x: 0, y: 0, z: 0};
+  	var cmd = 'echo "received' + input + '"';
+	//while(wait == 0);
+	console.log(input);	
+	exec(cmd, function(err, stdout, stderr) {
+  		if (err) {
+    		// should have err.code here?  
+  		}
+  		console.log(stdout);
+	});
+	
+	input.split(' ').forEach(function(word) {
+		switch(word[0]) {
+			case 'd':
+				droneIndex = parseInt(word.substring(1));
+				break;
+			case 'x':
+				coordinates.x = parseInt(word.substring(1));
+				break;
+			case 'y':
+				coordinates.y = parseInt(word.substring(1));
+				break;
+			case 'z':
+				coordinates.z = parseInt(word.substring(1));
+				break;
+			case 'n':
+//				wait = 1;//done transmitting, need to do a semaphore
+				break;
+			default:
+				break;
+		}
+	});
+	if(drones.drones[droneIndex] == null) {
+		drones.drone[droneIndex] = { nodes: []};
+	}
+	drones.drones[droneIndex].push(coordinates);
+	//console.log(`Received: ${input}`);
+});
 app.use(express.json());       // to support JSON-encoded bodies
 app.use(express.urlencoded()); // to support URL-encoded bodies
 app.use(express.static(__dirname + '/public'));
@@ -359,32 +413,86 @@ var routes = {
 	count: 0,
 	routes: []
 };
+/*
+var p = require('process');
+if(p.pid) {
+	console.log(p.pid);
+}*/
+/*
+var startRouterCmd
+exec(startRouterCmd, function(err, stdout, stderr) {
+  	if (err) {
+    	// should have err.code here?  
+  	}
+  	console.log(stdout);
+});*/
+var spawn = require('child_process').spawn,
+routeChild = spawn('./route');
+
+routeChild.stdin.setEncoding('utf-8');
+routeChild.stdout.pipe(process.stdout);
+
+routeChild.stdout.on('data', (data) => {
+  console.log('received' + data);
+});
+
+app.post('/setPosition', function(req, res) {
+	console.log(req.body.loc);
+	res.json({result: true});
+});
+app.get('/getRoute', function(req, res) {
+	console.log("get route");
+	child.stdin.write("new 0 0 0 10 10 10\n");
+	child.stdin.end(); /// this call seems necessary, at least with plain node.js executable
+	res.json(routes.routes);
+});
+//var wait = 1;
 app.post('/createRoute', function(req, res) {
-	var positions = req.body.positions;
-	var startX = positions.startX;
-	var startY = positions.startY;
-	var startZ = positions.startZ;
-	var endX = positions.endX;
-	var endY = positions.endY;
-	var endZ = positions.endZ;
-	var pid = positions.pid;
-	var startNode = {x: startX, y: startY, z: startZ};
-	var route = new Route(startX, startY, startZ, endX, endY, endZ);
-	route.createRoute(routes);
-	//console.log("Vertices Below");
-	var resultRoute = { vertices: [] };
-	var cmd = 'echo "' + startX +  ' ' + startY + ' ' + startZ + ' ' + endX + ' ' + endY + ' ' + endZ + '\n" > /proc/' + pid + '/fd/0';
-	exec(cmd, function(err, stdout, stderr) {
-  		if (err) {
-    		// should have err.code here?  
-  		}
-  		console.log(stdout);
+	fs.readFile('routePid.txt', 'utf8', function(err, pid) {
+		var positions = req.body;
+		var startX = positions.startX;
+		var startY = positions.startY;
+		var startZ = positions.startZ;
+		var endX = positions.endX;
+		var endY = positions.endY;
+		var endZ = positions.endZ;
+		var route = new Route(startX, startY, startZ, endX, endY, endZ);
+		var routeCmd = 'new ' + startX +  ' ' + startY + ' ' + startZ + ' ' + endX + ' ' + endY + ' ' + endZ + '\n';
+		var cmd = 'echo "" > /proc/' + pid + '/fd/0';
+   		//console.log(routeCmd);
+		/*
+		fs.writeFile("route.txt", routeCmd, function(err) {
+    			if(err) {
+        			return console.log(err);
+    			}
+		}); 
+		*/
+		routeChild.stdin.write(routeCmd);
+
+		routeChild.stdin.end(); 
+		/*
+		exec(cmd, function(err, stdout, stderr) {
+  			if (err) {
+    			// should have err.code here?  
+ 	 		}
+  //			console.log(stdout);
+		});*/
 	});
+	/*
+	routerConnection.question('What do you think of Node.js? ', (answer) => {
+  		console.log('Thank you for your valuable feedback:', answer);
+  		rl.close();
+	});*/
+	/*
 	route.vertices.forEach(function(vertex) {
 		//console.log("x: " + vertex.x + " y: " + vertex.y + " z: " + vertex.z);
 		resultRoute.vertices.push({x: vertex.x, y: vertex.y, z: vertex.z});
-	});
-	res.json(resultRoute);		
+	});*/
+setTimeout(function() {
+
+}, 1000)
+	res.json({success: true});
+	//res.json(drones.drones);		
 });
 app.post('/droneRoute', function(req, res) {
 	var routeId;
