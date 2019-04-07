@@ -427,15 +427,20 @@ exec(startRouterCmd, function(err, stdout, stderr) {
   	console.log(stdout);
 });*/
 var spawn = require('child_process').spawn,
-routeChild = spawn('./route');
+imageProcessingChild = spawn('python', ['main.py']);
+//imageProcessingChild.stdin.setEncoding('utf-8');
+//imageProcessingChild.stdout.pipe(process.stdout);
 
+imageProcessingChild.stdout.on('data', (data) => {
+  console.log('image received' + data);
+});
+routeChild = spawn('./route');
 routeChild.stdin.setEncoding('utf-8');
 routeChild.stdout.pipe(process.stdout);
 
 routeChild.stdout.on('data', (data) => {
-  console.log('received' + data);
+  console.log('route received' + data);
 });
-
 app.post('/setPosition', function(req, res) {
 	console.log(req.body.loc);
 	res.json({result: true});
@@ -448,6 +453,8 @@ app.get('/getRoute', function(req, res) {
 });
 //var wait = 1;
 app.post('/createRoute', function(req, res) {
+	//imageProcessingChild.stdin.write("10");
+
 	fs.readFile('routePid.txt', 'utf8', function(err, pid) {
 		var positions = req.body;
 		var startX = positions.startX;
