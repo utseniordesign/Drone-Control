@@ -427,19 +427,55 @@ exec(startRouterCmd, function(err, stdout, stderr) {
   	console.log(stdout);
 });*/
 var spawn = require('child_process').spawn,
-imageProcessingChild = spawn('python', ['main.py']);
-//imageProcessingChild.stdin.setEncoding('utf-8');
-//imageProcessingChild.stdout.pipe(process.stdout);
-
-imageProcessingChild.stdout.on('data', (data) => {
+//imageProcessingChild = spawn('python', ['main.py']);
+/*
+roscore_Child = spawn('roscore');
+roscore_Child.stderr.on('data', (data) => {
+  console.log(data);
+});
+roscore_Child.stdout.on('data', (data) => {
   console.log('image received' + data);
 });
+*/
+
+/*
+camera_Child = spawn('rosrun', {cwd: '/home/yazan231/catkin_ws/devel/lib'}, ['image_view', 'image_view','image:=/ardrone/image_raw']);
+camera_Child.stderr.on('data', (data) => {
+  console.log('image error: ' + data);
+});
+camera_Child.stdout.on('data', (data) => {
+  console.log('image out: ' + data);
+});
+*/
+/*
+ardrone_driver_Child.stdout.on('data', (data) => {
+  console.log('image received' + data);
+});
+*/
+//fly_Child = spawn('rosrun', {cwd: '~/catkin_ws/src/'}, ['drone_application', 'tk.py']);
+//fly_Child.stderr.on('data', (data) => { console.log(data);});
+//imageProcessingChild.stdin.setEncoding('utf-8');
+//imageProcessingChild.stdout.pipe(process.stdout);
+/*
+imageProcessingChild.stdout.on('data', (data) => {
+  console.log('image received' + data);
+});*/
 routeChild = spawn('./route');
 routeChild.stdin.setEncoding('utf-8');
 routeChild.stdout.pipe(process.stdout);
 
 routeChild.stdout.on('data', (data) => {
   console.log('route received' + data);
+  fs.writeFile('/home/yazan231/catkin_ws/src/drone_application/route.txt', data, function(err){
+    if(err) {
+      console.log(err);
+    }
+  });
+  ardrone_driver_Child = spawn('make', ['fly'], {cwd: '/home/yazan231/catkin_ws/src'} );
+  ardrone_driver_Child.stdout.on('data', (data) => {
+    console.log(data);
+  });
+ 
 });
 app.post('/setPosition', function(req, res) {
 	console.log(req.body.loc);
